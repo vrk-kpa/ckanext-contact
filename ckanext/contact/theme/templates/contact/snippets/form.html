@@ -9,18 +9,16 @@
 
         {% block contact_form_fields %}
 
-            {{ form.input('name', label=_('Contact Name'), id='field-name', value=data.name, error=errors.name, classes=['control-medium'], is_required=true) }}
+            {{ form.input('name', label=_('Name'), id='field-name', value=data.name, error=errors.name, classes=['control-medium'], is_required=false) }}
 
-            {{ form.input('email', label=_('Email'), id='field-email', type='email', value=data.email, error=errors.email, classes=['control-medium'], is_required=true) }}
+            {{ form.input('email', label=_('Email'), id='field-email', type='email', value=data.email, error=errors.email, classes=['control-medium'], is_required=false) }}
 
-            {{ form.markdown('content', label=_('Your Request'), id='field-content', value=data.content, error=errors.content, placeholder=_('What do you have to tell us?'), is_required=true) }}
+            {{ form.markdown('content', label=_('Feedback message'), id='field-content', value=data.content, error=errors.content, is_required=true) }}
 
         {% endblock %}
 
-      {% if g.recaptcha_publickey %}
-        {% snippet "user/snippets/recaptcha.html", public_key=g.recaptcha_publickey %}
-      {% endif %}
-
+      {{ form.hidden('captcha_challenge_field', captcha.challenge) }}
+      {{ form.input('captcha_response_field', label=captcha.text, id='field-captcha', type='number', value='', error=errors.captcha, classes=['control-medium'], is_required=true) }}
       </fieldset>
 
       <div class="form-actions">

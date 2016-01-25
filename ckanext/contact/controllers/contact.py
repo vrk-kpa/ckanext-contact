@@ -3,11 +3,12 @@ import ckan.lib.base as base
 import ckan.plugins as p
 import ckan.logic as logic
 import ckan.model as model
-import ckan.lib.captcha as captcha
+import simplecaptcha as captcha
 import ckan.lib.navl.dictization_functions as dictization_functions
 import ckan.lib.mailer as mailer
 import ckan.lib.helpers as h
 import socket
+import random
 from pylons import config
 from ckan.common import _, request, c, response
 from ckanext.contact.interfaces import IContact
@@ -24,6 +25,7 @@ unflatten = dictization_functions.unflatten
 check_access = logic.check_access
 get_action = logic.get_action
 flatten_to_string_key = logic.flatten_to_string_key
+
 
 class ContactController(base.BaseController):
     """
@@ -43,40 +45,38 @@ class ContactController(base.BaseController):
     @staticmethod
     def _submit(context):
 
+        captcha_ok = True
         try:
             data_dict = logic.clean_dict(unflatten(logic.tuplize_dict(logic.parse_params(request.params))))
             context['message'] = data_dict.get('log_message', '')
             c.form = data_dict['name']
-            captcha.check_recaptcha(request)
+            captcha.check_captcha(request)
         except logic.NotAuthorized:
             base.abort(401, _('Not authorized to see this page'))
         except captcha.CaptchaError:
             error_msg = _(u'Bad Captcha. Please try again.')
+            captcha_ok = False
             h.flash_error(error_msg)
 
         errors = {}
         error_summary = {}
 
-        if data_dict["email"] == '':
-            errors['email'] = [u'Missing Value']
-            error_summary['email'] = u'Missing value'
-
-        if data_dict["name"] == '':
-            errors['name'] = [u'Missing Value']
-            error_summary['name'] = u'Missing value'
-
         if data_dict["content"] == '':
             errors['content'] = [u'Missing Value']
             error_summary['content'] = u'Missing value'
 
-        if len(errors) == 0:
+        if len(errors) == 0 and captcha_ok:
 
             body = '%s' % data_dict["content"]
             body += '\n\nSent by:\nName:%s\nEmail: %s\n' % (data_dict["name"], data_dict["email"])
+            recipient_email = config.get("ckanext.contact.mail_to", config.get('email_to'))
+            recipient_name = config.get("ckanext.contact.recipient_name", config.get('ckan.site_title'))
+            subject = config.get("ckanext.contact.subject", 'Contact/Question from visitor')
+
             mail_dict = {
-                'recipient_email': config.get("ckanext.contact.mail_to", config.get('email_to')),
-                'recipient_name': config.get("ckanext.contact.recipient_name", config.get('ckan.site_title')),
-                'subject': config.get("ckanext.contact.subject", 'Contact/Question from visitor'),
+                'recipient_email': recipient_email.decode('utf-8'),
+                'recipient_name': recipient_name.decode('utf-8'),
+                'subject': subject.decode('utf-8'),
                 'body': body,
                 'headers': {'reply-to': data_dict["email"]}
             }
@@ -91,7 +91,7 @@ class ContactController(base.BaseController):
                 h.flash_error(_(u'Sorry, there was an error sending the email. Please try again later'))
             else:
                 data_dict['success'] = True
-                
+
         return data_dict, errors, error_summary
 
     def ajax_submit(self):
@@ -129,5 +129,9 @@ class ContactController(base.BaseController):
         if data.get('success', False):
             return p.toolkit.render('contact/success.html')
         else:
-            vars = {'data': data, 'errors': errors, 'error_summary': error_summary}
+            captcha_challenge_values = (random.randint(1, 10), random.randint(1, 10))
+            captcha_challenge = "%d %d" % captcha_challenge_values
+            captcha_challenge_text = "%d + %d =" % captcha_challenge_values
+            captcha_obj = {'challenge': captcha_challenge, 'text': captcha_challenge_text}
+            vars = {'data': data, 'errors': errors, 'error_summary': error_summary, 'captcha': captcha_obj}
             return p.toolkit.render('contact/form.html', extra_vars=vars)
