@@ -9,7 +9,7 @@
 {% block primary_content %}
   <article class="module">
     <div class="module-content">
-      <h1 class="page-heading">{{ _('Feedback') }}</h1>
+      <h1 class="page-heading">{{ _('Send feedback') }}</h1>
 
         {% block contact_form_content %}
             {% include "contact/snippets/form.html" %}
@@ -19,3 +19,15 @@
   </article>
 {% endblock %}
 
+{% block secondary_content %}
+<div class="module module-narrow module-shallow">
+   <h2 class="module-heading">
+    <i class="icon-info-sign"></i>
+    {{ _('Feedback') }}
+  </h2>
+  <div class="module-content">
+    <p>{{ _('We would like to receive feedback and development ideas regarding the API Catalogue. You cannot submit feedback on individual APIs at this time. More information on specific APIs is available through the contact channels stated in the API.') }}</p>
+    <p>{{ _('Please send your feedback or development ideas regarding the API Catalogue using the feedback form. The feedback will be directed to Customer Services at the Service Architecture Unit of the Population Register Centre. If you wish to receive a reply to your feedback, please enclose your contact information.') }}</p>
+  </div>
+</div>
+{% endblock %}
